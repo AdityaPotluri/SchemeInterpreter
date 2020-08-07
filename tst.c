@@ -1,13 +1,12 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<stdbool.h>
-#include<ctype.h>
-#include<string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
 
-// defines all the different built in types in scheme
+/**************************** MODEL ******************************/
+
 typedef enum {FIXNUM} object_type;
 
-// defines the structure for all the different objects and their data
 typedef struct object {
     object_type type;
     union {
@@ -17,73 +16,69 @@ typedef struct object {
     } data;
 } object;
 
-// allocates memory for the object (no garbage collection)
+/* no GC so truely "unlimited extent" */
 object* alloc_object(void) {
     object *obj;
+
     obj = malloc(sizeof(object));
-    if(obj == NULL) {
-        fprintf(stderr, "Out of Memory Lol\n");
+    if (obj == NULL) {
+        fprintf(stderr, "out of memory\n");
         exit(1);
     }
     return obj;
 }
 
-// the "constructor" for the fixnum type (integers basically)
 object* make_fixnum(long value) {
-    object* obj;
+    object *obj;
+
     obj = alloc_object();
     obj->type = FIXNUM;
     obj->data.fixnum.value = value;
     return obj;
 }
 
-
-
-//just says if its a fixnum
-bool isFixNum(object *obj) {
+char is_fixnum(object *obj) {
     return obj->type == FIXNUM;
 }
 
-//just says if it is a delimeter
-bool is_delimiter(int c) {
-    return (isspace(c) || c == ')' || c == '(' || c == ';' || c == '"' || c == EOF);
+/***************************** READ ******************************/
+
+char is_delimiter(int c) {
+    return isspace(c) || c == EOF ||
+           c == '('   || c == ')' ||
+           c == '"'   || c == ';';
 }
 
-// reads from the top of a file
 int peek(FILE *in) {
     int c;
+
     c = getc(in);
-    ungetc(c,in);
+    ungetc(c, in);
     return c;
 }
 
-//removes all the whitespace from being read by the translator
-void eatWhitespace(FILE *in) {
+void eat_whitespace(FILE *in) {
     int c;
-    while((c = getc(in)) != EOF){
-
-        if(isspace(c)) {
+    
+    while ((c = getc(in)) != EOF) {
+        if (isspace(c)) {
             continue;
         }
-
-        else if(c == ';') {
-            while(((c = getc(in)) != EOF) && (c != '\n'));
+        else if (c == ';') { /* comments are whitespace also */
+            while (((c = getc(in)) != EOF) && (c != '\n'));
             continue;
-            
         }
-        ungetc(c,in);
+        ungetc(c, in);
         break;
     }
-    
 }
 
-// The read in Read Evalute Print Loop
 object* read(FILE *in) {
     int c;
     short sign = 1;
     long num = 0;
 
-    eatWhitespace(in);
+    eat_whitespace(in);
 
     c = getc(in);    
 
@@ -116,12 +111,15 @@ object* read(FILE *in) {
     exit(1);
 }
 
-//the eval in read eval print line
+/*************************** EVALUATE ****************************/
+
+/* until we have lists and symbols just echo */
 object* eval(object *exp) {
     return exp;
 }
 
-// the print in read eval print line
+/**************************** PRINT ******************************/
+
 void write(object *obj) {
     switch (obj->type) {
         case FIXNUM:
@@ -133,16 +131,18 @@ void write(object *obj) {
     }
 }
 
+/***************************** REPL ******************************/
 
 int main(void) {
-   printf("Scheme Bootstrap! press Ctrl ^c to to exit\n");
-   while(1) {
-       printf(">");
-       write(eval(read(stdin)));
-       printf("\n");
-   }
 
-   return 0;
+    printf("Welcome to Bootstrap Scheme. "
+           "Use ctrl-c to exit.\n");
+
+    while (1) {
+        printf("> ");
+        write(eval(read(stdin)));
+        printf("\n");
+    }
+
+    return 0;
 }
-
-
